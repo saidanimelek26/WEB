@@ -6,7 +6,7 @@
   <title>WebADB Pro GUI</title>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/webadb/webadb.js@master/dist/webadb.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/webadb@0.3.1/dist/webadb.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root {
@@ -194,299 +194,312 @@
 <body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-indigo-900 dark:to-purple-900 transition-colors duration-300 min-h-screen">
   <div id="root"></div>
   <script>
-    const { useState, useEffect, useRef } = React;
+    // Fallback if Adb is not defined
+    if (typeof Adb === 'undefined') {
+      console.error('WebADB.js failed to load. Please check the CDN or network.');
+      document.getElementById('root').innerHTML = `
+        <div class="min-h-screen flex items-center justify-center p-4">
+          <div class="text-red-600 text-center">
+            <h1 class="text-2xl font-bold">Error Loading WebADB.js</h1>
+            <p>Please ensure you have an internet connection and try refreshing the page.</p>
+          </div>
+        </div>
+      `;
+    } else {
+      const { useState, useEffect, useRef } = React;
 
-    function App() {
-      const [deviceStatus, setDeviceStatus] = useState("Disconnected");
-      const [output, setOutput] = useState("");
-      const [adb, setAdb] = useState(null);
-      const [loading, setLoading] = useState(false);
-      const [error, setError] = useState("");
-      const [commandHistory, setCommandHistory] = useState([]);
-      const [darkMode, setDarkMode] = useState(false); // Default to light mode
-      const [activeTab, setActiveTab] = useState("info");
-      const windowRef = useRef(null);
+      function App() {
+        const [deviceStatus, setDeviceStatus] = useState("Disconnected");
+        const [output, setOutput] = useState("");
+        const [adb, setAdb] = useState(null);
+        const [loading, setLoading] = useState(false);
+        const [error, setError] = useState("");
+        const [commandHistory, setCommandHistory] = useState([]);
+        const [darkMode, setDarkMode] = useState(false);
+        const [activeTab, setActiveTab] = useState("info");
+        const windowRef = useRef(null);
 
-      useEffect(() => {
-        document.body.classList.toggle("dark", darkMode);
-        localStorage.setItem("theme", darkMode ? "dark" : "light");
-      }, [darkMode]);
+        useEffect(() => {
+          document.body.classList.toggle("dark", darkMode);
+          localStorage.setItem("theme", darkMode ? "dark" : "light");
+        }, [darkMode]);
 
-      useEffect(() => {
-        const window = windowRef.current;
-        if (!window) return;
-        let offsetX, offsetY;
-        const handleDrag = (e) => {
-          if (e.target.classList.contains("draggable-header")) {
-            e.preventDefault();
-            offsetX = e.clientX - window.offsetLeft;
-            offsetY = e.clientY - window.offsetTop;
-            const onMouseMove = (e) => {
-              const maxX = window.innerWidth - window.offsetWidth;
-              const maxY = window.innerHeight - window.offsetHeight;
-              window.style.left = `${Math.max(0, Math.min(e.clientX - offsetX, maxX))}px`;
-              window.style.top = `${Math.max(0, Math.min(e.clientY - offsetY, maxY))}px`;
-              window.style.transform = "none";
-            };
-            document.addEventListener("mousemove", onMouseMove);
-            document.addEventListener("mouseup", () => document.removeEventListener("mousemove", onMouseMove), { once: true });
+        useEffect(() => {
+          const window = windowRef.current;
+          if (!window) return;
+          let offsetX, offsetY;
+          const handleDrag = (e) => {
+            if (e.target.classList.contains("draggable-header")) {
+              e.preventDefault();
+              offsetX = e.clientX - window.offsetLeft;
+              offsetY = e.clientY - window.offsetTop;
+              const onMouseMove = (e) => {
+                const maxX = window.innerWidth - window.offsetWidth;
+                const maxY = window.innerHeight - window.offsetHeight;
+                window.style.left = `${Math.max(0, Math.min(e.clientX - offsetX, maxX))}px`;
+                window.style.top = `${Math.max(0, Math.min(e.clientY - offsetY, maxY))}px`;
+                window.style.transform = "none";
+              };
+              document.addEventListener("mousemove", onMouseMove);
+              document.addEventListener("mouseup", () => document.removeEventListener("mousemove", onMouseMove), { once: true });
+            }
+          };
+          window.addEventListener("mousedown", handleDrag);
+          return () => window.removeEventListener("mousedown", handleDrag);
+        }, []);
+
+        const connectDevice = async () => {
+          setLoading(true);
+          setError("");
+          try {
+            const webusb = await Adb.open("WebUSB");
+            const adbConnection = await webusb.connectAdb("host::");
+            setAdb(adbConnection);
+            setDeviceStatus("Connected");
+            setOutput("Device connected successfully. Click 'Read Device Info' to view details.");
+          } catch (err) {
+            setError(`Connection failed: ${err.message}. Ensure USB debugging is enabled and device is connected via USB.`);
+            setDeviceStatus("Disconnected");
+            setOutput("");
+          } finally {
+            setLoading(false);
           }
         };
-        window.addEventListener("mousedown", handleDrag);
-        return () => window.removeEventListener("mousedown", handleDrag);
-      }, []);
 
-      const connectDevice = async () => {
-        setLoading(true);
-        setError("");
-        try {
-          const webusb = await Adb.open("WebUSB");
-          const adbConnection = await webusb.connectAdb("host::");
-          setAdb(adbConnection);
-          setDeviceStatus("Connected");
-          setOutput("Device connected successfully. Click 'Read Device Info' to view details.");
-        } catch (err) {
-          setError(`Connection failed: ${err.message}. Ensure USB debugging is enabled and device is connected via USB.`);
-          setDeviceStatus("Disconnected");
-          setOutput("");
-        } finally {
-          setLoading(false);
-        }
-      };
+        const runReadInfo = async () => {
+          if (!adb) {
+            setError("No device connected. Please connect a device first.");
+            return;
+          }
+          setLoading(true);
+          setError("");
+          const command = "getprop";
+          try {
+            const shell = await adb.shell(command);
+            const result = await new Promise((resolve, reject) => {
+              shell.receive().then(resolve).catch(reject);
+            });
+            const outputText = typeof result === "string" ? result : result.data || "No device info received.";
+            setOutput(outputText);
+            setCommandHistory((prev) => [
+              ...prev.slice(-5),
+              { command, output: outputText, timestamp: new Date().toLocaleTimeString() },
+            ]);
+          } catch (err) {
+            setError(`Failed to read device info: ${err.message}`);
+            setOutput(`Error: ${err.message}`);
+          } finally {
+            setLoading(false);
+          }
+        };
 
-      const runReadInfo = async () => {
-        if (!adb) {
-          setError("No device connected. Please connect a device first.");
-          return;
-        }
-        setLoading(true);
-        setError("");
-        const command = "getprop";
-        try {
-          const shell = await adb.shell(command);
-          const result = await new Promise((resolve, reject) => {
-            shell.receive().then(resolve).catch(reject);
-          });
-          const outputText = typeof result === "string" ? result : result.data || "No device info received.";
-          setOutput(outputText);
-          setCommandHistory((prev) => [
-            ...prev.slice(-5),
-            { command, output: outputText, timestamp: new Date().toLocaleTimeString() },
-          ]);
-        } catch (err) {
-          setError(`Failed to read device info: ${err.message}`);
-          setOutput(`Error: ${err.message}`);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      return React.createElement(
-        "div",
-        { className: "min-h-screen flex items-center justify-center p-4" },
-        React.createElement(
+        return React.createElement(
           "div",
-          {
-            ref: windowRef,
-            className: "window animate-fadeIn",
-            style: { position: "absolute", top: "5%", left: "50%", transform: "translateX(-50%)" },
-          },
+          { className: "min-h-screen flex items-center justify-center p-4" },
           React.createElement(
             "div",
-            { className: "draggable-header p-4 flex justify-between items-center" },
+            {
+              ref: windowRef,
+              className: "window animate-fadeIn",
+              style: { position: "absolute", top: "5%", left: "50%", transform: "translateX(-50%)" },
+            },
             React.createElement(
               "div",
-              { className: "flex items-center space-x-2" },
-              React.createElement("div", { className: "w-6 h-6 rounded-full bg-white/20 flex items-center justify-center" }, "🔧"),
-              React.createElement("span", { className: "font-bold text-lg text-white" }, "WebADB Pro")
-            ),
-            React.createElement(
-              "div",
-              { className: "flex items-center space-x-3" },
+              { className: "draggable-header p-4 flex justify-between items-center" },
               React.createElement(
-                "button",
-                {
-                  onClick: () => setDarkMode(!darkMode),
-                  className: "p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-300 text-white",
-                  title: darkMode ? "Switch to light mode" : "Switch to dark mode",
-                },
-                darkMode ? "☀️" : "🌙"
-              )
-            )
-          ),
-          React.createElement(
-            "div",
-            { className: "p-6 flex flex-col h-full" },
-            React.createElement(
-              "div",
-              { className: "flex justify-between items-center mb-6" },
-              React.createElement(
-                "button",
-                {
-                  onClick: connectDevice,
-                  disabled: loading || deviceStatus === "Connected",
-                  className: `px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                    deviceStatus === "Connected" ? "btn-success" : "btn-primary animate-pulse"
-                  } disabled:opacity-50 flex items-center`,
-                },
-                loading
-                  ? React.createElement("span", { className: "loading-spinner mr-2" })
-                  : null,
-                deviceStatus === "Connected" ? "Connected" : loading ? "Connecting..." : "Connect Device"
+                "div",
+                { className: "flex items-center space-x-2" },
+                React.createElement("div", { className: "w-6 h-6 rounded-full bg-white/20 flex items-center justify-center" }, "🔧"),
+                React.createElement("span", { className: "font-bold text-lg text-white" }, "WebADB Pro")
               ),
               React.createElement(
                 "div",
-                { className: "flex items-center" },
-                React.createElement("div", {
-                  className: `w-3 h-3 rounded-full mr-2 ${deviceStatus === "Connected" ? "bg-green-500" : "bg-red-500"}`,
-                }),
-                React.createElement(
-                  "span",
-                  { className: `text-lg font-medium ${deviceStatus === "Connected" ? "status-connected" : "status-disconnected"}` },
-                  `Status: ${deviceStatus}`
-                )
-              )
-            ),
-            error && React.createElement(
-              "div",
-              { className: "mb-6" },
-              React.createElement(
-                "div",
-                { className: "p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg" },
-                React.createElement("p", { className: "text-red-700 dark:text-red-300" }, error)
-              )
-            ),
-            React.createElement(
-              "div",
-              { className: "mb-6 flex border-b border-gray-200 dark:border-gray-700" },
-              ["info", "shell", "files"].map((tab) =>
+                { className: "flex items-center space-x-3" },
                 React.createElement(
                   "button",
                   {
-                    key: tab,
-                    onClick: () => setActiveTab(tab),
-                    className: `tab-button px-4 py-2 font-medium ${
-                      activeTab === tab
-                        ? "tab-active"
-                        : "text-gray-500 dark:text-gray-400"
-                    }`,
+                    onClick: () => setDarkMode(!darkMode),
+                    className: "p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-300 text-white",
+                    title: darkMode ? "Switch to light mode" : "Switch to dark mode",
                   },
-                  tab === "info" ? "Device Info" : tab === "shell" ? "Shell" : "File Manager"
+                  darkMode ? "☀️" : "🌙"
                 )
               )
             ),
             React.createElement(
               "div",
-              { className: "tab-content" },
+              { className: "p-6 flex flex-col h-full" },
               React.createElement(
                 "div",
-                { className: `tab-content ${activeTab === "info" ? "active" : "hidden"}` },
+                { className: "flex justify-between items-center mb-6" },
+                React.createElement(
+                  "button",
+                  {
+                    onClick: connectDevice,
+                    disabled: loading || deviceStatus === "Connected",
+                    className: `px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
+                      deviceStatus === "Connected" ? "btn-success" : "btn-primary animate-pulse"
+                    } disabled:opacity-50 flex items-center`,
+                  },
+                  loading
+                    ? React.createElement("span", { className: "loading-spinner mr-2" })
+                    : null,
+                  deviceStatus === "Connected" ? "Connected" : loading ? "Connecting..." : "Connect Device"
+                ),
                 React.createElement(
                   "div",
-                  { className: "mb-6" },
+                  { className: "flex items-center" },
+                  React.createElement("div", {
+                    className: `w-3 h-3 rounded-full mr-2 ${deviceStatus === "Connected" ? "bg-green-500" : "bg-red-500"}`,
+                  }),
+                  React.createElement(
+                    "span",
+                    { className: `text-lg font-medium ${deviceStatus === "Connected" ? "status-connected" : "status-disconnected"}` },
+                    `Status: ${deviceStatus}`
+                  )
+                )
+              ),
+              error && React.createElement(
+                "div",
+                { className: "mb-6" },
+                React.createElement(
+                  "div",
+                  { className: "p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg" },
+                  React.createElement("p", { className: "text-red-700 dark:text-red-300" }, error)
+                )
+              ),
+              React.createElement(
+                "div",
+                { className: "mb-6 flex border-b border-gray-200 dark:border-gray-700" },
+                ["info", "shell", "files"].map((tab) =>
                   React.createElement(
                     "button",
                     {
-                      onClick: runReadInfo,
-                      disabled: loading || !adb,
-                      className:
-                        "w-full px-6 py-4 glass-effect rounded-lg text-lg font-semibold text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center",
+                      key: tab,
+                      onClick: () => setActiveTab(tab),
+                      className: `tab-button px-4 py-2 font-medium ${
+                        activeTab === tab
+                          ? "tab-active"
+                          : "text-gray-500 dark:text-gray-400"
+                      }`,
                     },
-                    loading
-                      ? React.createElement("span", { className: "loading-spinner mr-2" })
-                      : null,
-                    loading ? "Reading..." : "Read Device Info"
+                    tab === "info" ? "Device Info" : tab === "shell" ? "Shell" : "File Manager"
+                  )
+                )
+              ),
+              React.createElement(
+                "div",
+                { className: "tab-content" },
+                React.createElement(
+                  "div",
+                  { className: `tab-content ${activeTab === "info" ? "active" : "hidden"}` },
+                  React.createElement(
+                    "div",
+                    { className: "mb-6" },
+                    React.createElement(
+                      "button",
+                      {
+                        onClick: runReadInfo,
+                        disabled: loading || !adb,
+                        className:
+                          "w-full px-6 py-4 glass-effect rounded-lg text-lg font-semibold text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center",
+                      },
+                      loading
+                        ? React.createElement("span", { className: "loading-spinner mr-2" })
+                        : null,
+                      loading ? "Reading..." : "Read Device Info"
+                    )
+                  ),
+                  React.createElement(
+                    "div",
+                    { className: "flex-1 mb-6" },
+                    React.createElement("h2", { className: "text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3" }, "Output"),
+                    React.createElement(
+                      "pre",
+                      { className: "output-terminal scrollbar-custom" },
+                      output || "Connect a device and click 'Read Device Info' to view details."
+                    )
                   )
                 ),
                 React.createElement(
                   "div",
-                  { className: "flex-1 mb-6" },
-                  React.createElement("h2", { className: "text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3" }, "Output"),
-                  React.createElement(
-                    "pre",
-                    { className: "output-terminal scrollbar-custom" },
-                    output || "Connect a device and click 'Read Device Info' to view details."
-                  )
-                )
-              ),
-              React.createElement(
-                "div",
-                { className: `tab-content ${activeTab === "shell" ? "active" : "hidden"}` },
-                React.createElement(
-                  "div",
-                  { className: "flex-1 mb-6" },
-                  React.createElement("h2", { className: "text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3" }, "ADB Shell"),
+                  { className: `tab-content ${activeTab === "shell" ? "active" : "hidden"}` },
                   React.createElement(
                     "div",
-                    { className: "glass-effect rounded-lg p-4 mb-4" },
-                    React.createElement("p", { className: "text-gray-700 dark:text-gray-300 mb-4" }, "Shell functionality coming soon..."),
+                    { className: "flex-1 mb-6" },
+                    React.createElement("h2", { className: "text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3" }, "ADB Shell"),
                     React.createElement(
                       "div",
-                      { className: "flex" },
-                      React.createElement("input", {
-                        type: "text",
-                        disabled: true,
-                        placeholder: "Enter shell command...",
-                        className: "flex-1 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-l-lg text-gray-900 dark:text-gray-100",
-                      }),
-                      React.createElement(
-                        "button",
-                        { disabled: true, className: "px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-r-lg cursor-not-allowed" },
-                        "Execute"
-                      )
-                    )
-                  )
-                )
-              ),
-              React.createElement(
-                "div",
-                { className: `tab-content ${activeTab === "files" ? "active" : "hidden"}` },
-                React.createElement(
-                  "div",
-                  { className: "flex-1 mb-6" },
-                  React.createElement("h2", { className: "text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3" }, "File Manager"),
-                  React.createElement(
-                    "div",
-                    { className: "glass-effect rounded-lg p-4 h-48 flex items-center justify-center" },
-                    React.createElement("p", { className: "text-gray-700 dark:text-gray-300" }, "File manager functionality coming soon...")
-                  )
-                )
-              )
-            ),
-            React.createElement(
-              "div",
-              { className: "mt-auto" },
-              React.createElement("h2", { className: "text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3" }, "History"),
-              React.createElement(
-                "div",
-                { className: "glass-effect rounded-lg p-4 history-panel scrollbar-custom" },
-                commandHistory.length === 0
-                  ? React.createElement("p", { className: "text-gray-500 dark:text-gray-400" }, "No device info fetched yet.")
-                  : commandHistory.map((entry, index) =>
+                      { className: "glass-effect rounded-lg p-4 mb-4" },
+                      React.createElement("p", { className: "text-gray-700 dark:text-gray-300 mb-4" }, "Shell functionality coming soon..."),
                       React.createElement(
                         "div",
-                        { key: index, className: "mb-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700" },
+                        { className: "flex" },
+                        React.createElement("input", {
+                          type: "text",
+                          disabled: true,
+                          placeholder: "Enter shell command...",
+                          className: "flex-1 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-l-lg text-gray-900 dark:text-gray-100",
+                        }),
                         React.createElement(
-                          "div",
-                          { className: "flex justify-between items-center mb-1" },
-                          React.createElement("span", { className: "text-sm font-semibold text-gray-900 dark:text-gray-100" }, "getprop"),
-                          React.createElement("span", { className: "text-xs text-gray-500 dark:text-gray-400" }, entry.timestamp)
-                        ),
-                        React.createElement(
-                          "pre",
-                          { className: "text-xs text-gray-600 dark:text-gray-300 truncate" },
-                          entry.output.slice(0, 80) + (entry.output.length > 80 ? "..." : "")
+                          "button",
+                          { disabled: true, className: "px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-r-lg cursor-not-allowed" },
+                          "Execute"
                         )
                       )
                     )
+                  )
+                ),
+                React.createElement(
+                  "div",
+                  { className: `tab-content ${activeTab === "files" ? "active" : "hidden"}` },
+                  React.createElement(
+                    "div",
+                    { className: "flex-1 mb-6" },
+                    React.createElement("h2", { className: "text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3" }, "File Manager"),
+                    React.createElement(
+                      "div",
+                      { className: "glass-effect rounded-lg p-4 h-48 flex items-center justify-center" },
+                      React.createElement("p", { className: "text-gray-700 dark:text-gray-300" }, "File manager functionality coming soon...")
+                    )
+                  )
+                )
+              ),
+              React.createElement(
+                "div",
+                { className: "mt-auto" },
+                React.createElement("h2", { className: "text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3" }, "History"),
+                React.createElement(
+                  "div",
+                  { className: "glass-effect rounded-lg p-4 history-panel scrollbar-custom" },
+                  commandHistory.length === 0
+                    ? React.createElement("p", { className: "text-gray-500 dark:text-gray-400" }, "No device info fetched yet.")
+                    : commandHistory.map((entry, index) =>
+                        React.createElement(
+                          "div",
+                          { key: index, className: "mb-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700" },
+                          React.createElement(
+                            "div",
+                            { className: "flex justify-between items-center mb-1" },
+                            React.createElement("span", { className: "text-sm font-semibold text-gray-900 dark:text-gray-100" }, "getprop"),
+                            React.createElement("span", { className: "text-xs text-gray-500 dark:text-gray-400" }, entry.timestamp)
+                          ),
+                          React.createElement(
+                            "pre",
+                            { className: "text-xs text-gray-600 dark:text-gray-300 truncate" },
+                            entry.output.slice(0, 80) + (entry.output.length > 80 ? "..." : "")
+                          )
+                        )
+                      )
+                )
               )
             )
           )
-        )
-      );
-    }
+        );
+      }
 
-    ReactDOM.render(React.createElement(App), document.getElementById("root"));
+      ReactDOM.render(React.createElement(App), document.getElementById("root"));
+    }
   </script>
 </body>
 </html>
