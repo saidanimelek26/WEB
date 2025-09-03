@@ -80,6 +80,14 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+    .troubleshooting-card {
+      transition: all 0.3s ease;
+      max-height: 0;
+      overflow: hidden;
+    }
+    .troubleshooting-card.open {
+      max-height: 500px;
+    }
   </style>
 </head>
 <body class="bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100 dark:from-gray-900 dark:via-indigo-900 dark:to-purple-900 transition-colors duration-300">
@@ -108,6 +116,7 @@
       const [commandHistory, setCommandHistory] = useState([]);
       const [darkMode, setDarkMode] = useState(true);
       const [deviceInfo, setDeviceInfo] = useState({});
+      const [showTroubleshooting, setShowTroubleshooting] = useState(false);
 
       useEffect(() => {
         document.body.classList.toggle("dark", darkMode);
@@ -125,6 +134,11 @@
         setLoading(true);
         setError("");
         try {
+          // Check if WebUSB is available
+          if (!navigator.usb) {
+            throw new Error("WebUSB is not supported in this browser. Please use Chrome or Edge.");
+          }
+          
           // Using WebADB exactly as specified
           const webusb = await Adb.open("WebUSB");
           const adbConnection = await webusb.connectAdb("host::");
@@ -146,8 +160,20 @@
             console.log("Could not fetch device info:", infoErr);
           }
         } catch (err) {
-          setError(`Connection failed: ${err.message}. Make sure USB debugging is enabled and you've allowed the connection on your device.`);
+          let errorMessage = `Connection failed: ${err.message}.`;
+          
+          // Provide specific guidance for common errors
+          if (err.message.includes("claimInterface")) {
+            errorMessage += " This usually happens when another application is using the USB connection. Please close any other ADB tools (like Android Studio) and try again.";
+          } else if (err.message.includes("No device selected")) {
+            errorMessage += " Please make sure to select your device from the USB device prompt.";
+          } else if (err.message.includes("WebUSB is not supported")) {
+            errorMessage += " Please use Chrome or Edge browser for WebADB functionality.";
+          }
+          
+          setError(errorMessage);
           setDeviceStatus("Disconnected");
+          setShowTroubleshooting(true);
         } finally {
           setLoading(false);
         }
@@ -204,6 +230,27 @@
         setOutput("");
         setError("");
       };
+
+      const TroubleshootingGuide = () => (
+        <div className={`troubleshooting-card mt-4 bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg ${showTroubleshooting ? 'open' : ''}`}>
+          <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2">Troubleshooting Steps:</h3>
+          <ol className="list-decimal list-inside text-yellow-700 dark:text-yellow-300 text-sm space-y-1">
+            <li>Ensure USB debugging is enabled on your Android device (Developer options)</li>
+            <li>Close any other applications that might be using ADB (Android Studio, etc.)</li>
+            <li>Try a different USB cable or USB port</li>
+            <li>On your device, when prompted, allow the USB connection</li>
+            <li>Check if any driver installation is needed for your device</li>
+            <li>Try refreshing the page and connecting again</li>
+            <li>Use Chrome or Edge browser for best compatibility</li>
+          </ol>
+          <button 
+            onClick={() => setShowTroubleshooting(false)}
+            className="mt-2 text-yellow-700 dark:text-yellow-300 text-sm underline"
+          >
+            Hide troubleshooting guide
+          </button>
+        </div>
+      );
 
       return (
         <div className="min-h-screen flex font-sans">
@@ -291,6 +338,24 @@
           {/* Main Content */}
           <div className="flex-1 p-6 bg-gray-100 dark:bg-gray-900 overflow-auto">
             <div className="max-w-4xl mx-auto">
+              {/* Connection Help */}
+              {!adb && (
+                <div className="mb-6 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg animate-fadeIn">
+                  <h2 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">Getting Started</h2>
+                  <p className="text-blue-700 dark:text-blue-300 text-sm">
+                    To use WebADB, you need to enable USB debugging on your Android device and connect it via USB.
+                    When you click "Connect", your browser will prompt you to select your device.
+                  </p>
+                  <button 
+                    onClick={() => setShowTroubleshooting(!showTroubleshooting)}
+                    className="mt-2 text-blue-700 dark:text-blue-300 text-sm underline"
+                  >
+                    {showTroubleshooting ? "Hide" : "Show"} troubleshooting guide
+                  </button>
+                  <TroubleshootingGuide />
+                </div>
+              )}
+
               {/* Custom Command */}
               <div className="mb-6 animate-fadeIn">
                 <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">Custom Command</h2>
