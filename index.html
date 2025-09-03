@@ -7,77 +7,173 @@
   <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/webadb/webadb.js@master/webadb.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --secondary: #10b981;
+      --dark-bg: #1f2937;
+      --darker-bg: #111827;
+      --light-bg: #f9fafb;
+      --lighter-bg: #ffffff;
+      --text-dark: #1f2937;
+      --text-light: #f9fafb;
+      --border-dark: #374151;
+      --border-light: #e5e7eb;
+    }
+
+    body {
+      transition: all 0.3s ease;
+    }
+
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(15px); }
       to { opacity: 1; transform: translateY(0); }
     }
+    
     @keyframes pulse {
       0%, 100% { transform: scale(1); }
       50% { transform: scale(1.03); }
     }
+    
     .animate-fadeIn {
       animation: fadeIn 0.5s ease-out;
     }
+    
     .animate-pulse {
       animation: pulse 2s infinite;
     }
+    
     .window {
       resize: both;
       overflow: auto;
-      min-width: 400px;
-      min-height: 500px;
+      min-width: 500px;
+      min-height: 600px;
       max-width: 90vw;
       max-height: 85vh;
-      background: rgba(255, 255, 255, 0.95);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+      background: var(--lighter-bg);
+      border: 1px solid var(--border-light);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     }
+    
     .dark .window {
-      background: rgba(17, 24, 39, 0.95);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: var(--darker-bg);
+      border: 1px solid var(--border-dark);
     }
+    
     .draggable-header {
       cursor: move;
       user-select: none;
-      background: linear-gradient(135deg, #1e3a8a, #7e22ce);
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      border-top-left-radius: 0.75rem;
+      border-top-right-radius: 0.75rem;
     }
+    
     .scrollbar-custom::-webkit-scrollbar {
       width: 8px;
       height: 8px;
     }
+    
     .scrollbar-custom::-webkit-scrollbar-track {
       background: rgba(229, 231, 235, 0.4);
+      border-radius: 4px;
     }
+    
     .scrollbar-custom::-webkit-scrollbar-thumb {
       background: rgba(107, 114, 128, 0.6);
       border-radius: 4px;
     }
+    
     .scrollbar-custom::-webkit-scrollbar-thumb:hover {
       background: rgba(75, 85, 99, 0.8);
     }
+    
     .dark .scrollbar-custom::-webkit-scrollbar-track {
       background: rgba(31, 41, 55, 0.4);
     }
+    
     .dark .scrollbar-custom::-webkit-scrollbar-thumb {
       background: rgba(156, 163, 175, 0.6);
     }
+    
     .dark .scrollbar-custom::-webkit-scrollbar-thumb:hover {
       background: rgba(209, 213, 219, 0.8);
     }
+    
     .glass-effect {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(6px);
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
     }
+    
     .dark .glass-effect {
-      background: rgba(31, 41, 55, 0.15);
+      background: rgba(31, 41, 55, 0.4);
       border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, var(--primary-dark), #4338ca);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.4);
+    }
+    
+    .btn-success {
+      background: linear-gradient(135deg, var(--secondary), #059669);
+      color: white;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-success:hover:not(:disabled) {
+      background: linear-gradient(135deg, #059669, #047857);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.4);
+    }
+    
+    .status-connected {
+      color: var(--secondary);
+      font-weight: 600;
+    }
+    
+    .status-disconnected {
+      color: #ef4444;
+      font-weight: 600;
+    }
+    
+    .output-terminal {
+      background: var(--dark-bg);
+      color: var(--text-light);
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      border-radius: 0.5rem;
+      padding: 1rem;
+      height: 220px;
+      overflow: auto;
+    }
+    
+    .history-panel {
+      max-height: 120px;
+      overflow-y: auto;
+    }
+    
+    .tab-active {
+      border-bottom: 2px solid var(--primary);
+      color: var(--primary);
+      font-weight: 600;
+    }
+    
+    .dark .tab-active {
+      color: var(--primary-dark);
+      border-bottom: 2px solid var(--primary-dark);
     }
   </style>
 </head>
-<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-indigo-900 dark:to-purple-900 transition-colors duration-500">
+<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-indigo-900 dark:to-purple-900 transition-colors duration-300">
   <div id="root"></div>
   <script>
     const { useState, useEffect, useRef } = React;
@@ -90,32 +186,59 @@
       const [error, setError] = useState("");
       const [commandHistory, setCommandHistory] = useState([]);
       const [darkMode, setDarkMode] = useState(true);
+      const [activeTab, setActiveTab] = useState("info");
       const windowRef = useRef(null);
 
+      // تحميل وضع الألوان من التخزين المحلي إذا كان موجوداً
+      useEffect(() => {
+        const savedTheme = localStorage.getItem("theme");
+        if (savedTheme) {
+          setDarkMode(savedTheme === "dark");
+        }
+      }, []);
+
+      // تطبيق وضع الألوان
       useEffect(() => {
         document.body.classList.toggle("dark", darkMode);
         localStorage.setItem("theme", darkMode ? "dark" : "light");
       }, [darkMode]);
 
+      // تفعيل خاصية السحب للنافذة
       useEffect(() => {
         const window = windowRef.current;
         if (!window) return;
-        let offsetX, offsetY;
-        const handleDrag = (e) => {
+        
+        let offsetX, offsetY, isDragging = false;
+        
+        const handleDragStart = (e) => {
           if (e.target.classList.contains("draggable-header")) {
-            e.preventDefault();
+            isDragging = true;
             offsetX = e.clientX - window.offsetLeft;
             offsetY = e.clientY - window.offsetTop;
-            const onMouseMove = (e) => {
-              window.style.left = `${e.clientX - offsetX}px`;
-              window.style.top = `${e.clientY - offsetY}px`;
-            };
-            document.addEventListener("mousemove", onMouseMove);
-            document.addEventListener("mouseup", () => document.removeEventListener("mousemove", onMouseMove), { once: true });
+            window.style.cursor = "grabbing";
           }
         };
-        window.addEventListener("mousedown", handleDrag);
-        return () => window.removeEventListener("mousedown", handleDrag);
+        
+        const handleDrag = (e) => {
+          if (!isDragging) return;
+          window.style.left = `${e.clientX - offsetX}px`;
+          window.style.top = `${e.clientY - offsetY}px`;
+        };
+        
+        const handleDragEnd = () => {
+          isDragging = false;
+          window.style.cursor = "default";
+        };
+        
+        window.addEventListener("mousedown", handleDragStart);
+        document.addEventListener("mousemove", handleDrag);
+        document.addEventListener("mouseup", handleDragEnd);
+        
+        return () => {
+          window.removeEventListener("mousedown", handleDragStart);
+          document.removeEventListener("mousemove", handleDrag);
+          document.removeEventListener("mouseup", handleDragEnd);
+        };
       }, []);
 
       const connectDevice = async () => {
@@ -171,21 +294,24 @@
           "div",
           {
             ref: windowRef,
-            className: "window rounded-2xl w-[700px] h-[600px] relative animate-fadeIn",
+            className: "window rounded-xl w-[800px] h-[700px] relative animate-fadeIn",
             style: { position: "absolute", top: "5%", left: "50%", transform: "translateX(-50%)" },
           },
           React.createElement(
             "div",
-            { className: "draggable-header rounded-t-2xl text-white p-4 flex justify-between items-center" },
-            React.createElement("span", { className: "font-bold text-xl" }, "WebADB Pro"),
+            { className: "draggable-header p-4 flex justify-between items-center" },
+            React.createElement("div", { className: "flex items-center space-x-2" },
+              React.createElement("div", { className: "w-6 h-6 rounded-full bg-white/20 flex items-center justify-center" }, "🔧"),
+              React.createElement("span", { className: "font-bold text-lg text-white" }, "WebADB Pro")
+            ),
             React.createElement(
               "div",
-              null,
+              { className: "flex items-center space-x-3" },
               React.createElement(
                 "button",
                 {
                   onClick: () => setDarkMode(!darkMode),
-                  className: "p-2 rounded-full hover:bg-white/20 transition-all duration-300",
+                  className: "p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-300 text-white",
                   title: darkMode ? "Switch to Light Mode" : "Switch to Dark Mode",
                 },
                 darkMode ? "☀️" : "🌙"
@@ -194,76 +320,168 @@
           ),
           React.createElement(
             "div",
-            { className: "p-8 flex flex-col h-full" },
+            { className: "p-6 flex flex-col h-full" },
             React.createElement(
               "div",
-              { className: "flex justify-between items-center mb-8" },
+              { className: "flex justify-between items-center mb-6" },
               React.createElement(
                 "button",
                 {
                   onClick: connectDevice,
                   disabled: loading || deviceStatus === "Connected",
-                  className: `px-8 py-3 rounded-lg font-semibold text-white transition-all duration-300 bg-gradient-to-r ${
-                    deviceStatus === "Connected"
-                      ? "from-green-500 to-green-600"
-                      : "from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700"
-                  } disabled:opacity-50 animate-pulse`,
+                  className: `px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
+                    deviceStatus === "Connected" 
+                      ? "btn-success" 
+                      : "btn-primary"
+                  } disabled:opacity-50 disabled:cursor-not-allowed ${loading || deviceStatus !== "Connected" ? "animate-pulse" : ""}`,
                 },
                 loading ? "Connecting..." : deviceStatus === "Connected" ? "Connected" : "Connect Device"
               ),
               React.createElement(
-                "span",
-                { className: `text-lg font-medium ${deviceStatus === "Connected" ? "text-green-500" : "text-red-500"}` },
-                `Status: ${deviceStatus}`
+                "div",
+                { className: "flex items-center" },
+                React.createElement("div", { 
+                  className: `w-3 h-3 rounded-full mr-2 ${deviceStatus === "Connected" ? "bg-green-500" : "bg-red-500"}`
+                }),
+                React.createElement(
+                  "span",
+                  { className: `text-lg font-medium ${deviceStatus === "Connected" ? "status-connected" : "status-disconnected"}` },
+                  `Status: ${deviceStatus}`
+                )
               )
             ),
-            error && React.createElement("p", { className: "text-lg text-red-500 mb-8 animate-fadeIn" }, error),
+            
+            error && React.createElement(
+              "div", 
+              { className: "mb-6 p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg animate-fadeIn" },
+              React.createElement("p", { className: "text-red-700 dark:text-red-300" }, error)
+            ),
+            
             React.createElement(
               "div",
-              { className: "mb-8" },
-              React.createElement("h2", { className: "text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4" }, "Device Info"),
+              { className: "mb-6 flex border-b border-gray-200 dark:border-gray-700" },
               React.createElement(
                 "button",
                 {
-                  onClick: runReadInfo,
-                  disabled: loading || !adb,
-                  className:
-                    "w-full px-8 py-4 glass-effect rounded-lg text-lg font-semibold text-gray-900 dark:text-gray-100 hover:bg-white/20 dark:hover:bg-gray-700/20 transition-all duration-300 disabled:opacity-50 animate-fadeIn",
+                  onClick: () => setActiveTab("info"),
+                  className: `px-4 py-2 font-medium ${activeTab === "info" ? "tab-active" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"}`,
                 },
-                "Read Device Info"
-              )
-            ),
-            React.createElement(
-              "div",
-              { className: "flex-1" },
-              React.createElement("h2", { className: "text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4" }, "Output"),
+                "Device Info"
+              ),
               React.createElement(
-                "pre",
-                { className: "bg-gray-800 text-gray-100 p-6 rounded-lg h-[220px] overflow-auto scrollbar-custom font-mono text-base" },
-                output || "Connect a device and click 'Read Device Info' to view details."
+                "button",
+                {
+                  onClick: () => setActiveTab("shell"),
+                  className: `px-4 py-2 font-medium ${activeTab === "shell" ? "tab-active" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"}`,
+                },
+                "Shell"
+              ),
+              React.createElement(
+                "button",
+                {
+                  onClick: () => setActiveTab("files"),
+                  className: `px-4 py-2 font-medium ${activeTab === "files" ? "tab-active" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"}`,
+                },
+                "File Manager"
               )
             ),
-            React.createElement(
-              "div",
-              { className: "mt-8" },
-              React.createElement("h2", { className: "text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4" }, "History"),
+            
+            activeTab === "info" && React.createElement(
+              React.Fragment,
+              null,
               React.createElement(
                 "div",
-                { className: "glass-effect rounded-lg p-6 max-h-32 overflow-auto scrollbar-custom" },
+                { className: "mb-6" },
+                React.createElement(
+                  "button",
+                  {
+                    onClick: runReadInfo,
+                    disabled: loading || !adb,
+                    className: "w-full px-6 py-4 glass-effect rounded-lg text-lg font-semibold text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed",
+                  },
+                  "Read Device Info"
+                )
+              ),
+              React.createElement(
+                "div",
+                { className: "flex-1 mb-6" },
+                React.createElement("h2", { className: "text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3" }, "Output"),
+                React.createElement(
+                  "pre",
+                  { className: "output-terminal scrollbar-custom" },
+                  output || "Connect a device and click 'Read Device Info' to view details."
+                )
+              )
+            ),
+            
+            activeTab === "shell" && React.createElement(
+              "div",
+              { className: "flex-1 mb-6" },
+              React.createElement("h2", { className: "text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3" }, "ADB Shell"),
+              React.createElement(
+                "div",
+                { className: "glass-effect rounded-lg p-4 mb-4" },
+                React.createElement("p", { className: "text-gray-700 dark:text-gray-300 mb-4" }, "Shell functionality coming soon..."),
+                React.createElement(
+                  "div",
+                  { className: "flex" },
+                  React.createElement("input", { 
+                    type: "text", 
+                    disabled: true,
+                    placeholder="Enter shell command...",
+                    className: "flex-1 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-l-lg text-gray-900 dark:text-gray-100",
+                  }),
+                  React.createElement(
+                    "button",
+                    { 
+                      disabled: true,
+                      className: "px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-r-lg cursor-not-allowed" 
+                    },
+                    "Execute"
+                  )
+                )
+              )
+            ),
+            
+            activeTab === "files" && React.createElement(
+              "div",
+              { className: "flex-1 mb-6" },
+              React.createElement("h2", { className: "text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3" }, "File Manager"),
+              React.createElement(
+                "div",
+                { className: "glass-effect rounded-lg p-4 h-48 flex items-center justify-center" },
+                React.createElement("p", { className: "text-gray-700 dark:text-gray-300" }, "File manager functionality coming soon...")
+              )
+            ),
+            
+            React.createElement(
+              "div",
+              { className: "mt-auto" },
+              React.createElement("h2", { className: "text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3" }, "History"),
+              React.createElement(
+                "div",
+                { className: "glass-effect rounded-lg p-4 history-panel scrollbar-custom" },
                 commandHistory.length === 0
-                  ? React.createElement("p", { className: "text-base text-gray-500 dark:text-gray-400" }, "No device info fetched yet.")
+                  ? React.createElement("p", { className: "text-gray-500 dark:text-gray-400" }, "No device info fetched yet.")
                   : commandHistory.map((entry, index) =>
                       React.createElement(
                         "div",
-                        { key: index, className: "mb-3 p-3 glass-effect rounded-lg" },
+                        { key: index, className: "mb-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700" },
                         React.createElement(
-                          "p",
-                          { className: "text-base font-semibold text-gray-900 dark:text-gray-100" },
-                          "Read Device Info",
-                          " ",
-                          React.createElement("span", { className: "text-sm text-gray-600 dark:text-gray-400" }, `(${entry.timestamp})`)
+                          "div",
+                          { className: "flex justify-between items-center mb-1" },
+                          React.createElement(
+                            "span",
+                            { className: "text-sm font-semibold text-gray-900 dark:text-gray-100" },
+                            "getprop"
+                          ),
+                          React.createElement(
+                            "span",
+                            { className: "text-xs text-gray-500 dark:text-gray-400" },
+                            entry.timestamp
+                          )
                         ),
-                        React.createElement("p", { className: "text-sm text-gray-700 dark:text-gray-300 truncate" }, entry.output.slice(0, 80) + "...")
+                        React.createElement("pre", { className: "text-xs text-gray-600 dark:text-gray-300 truncate" }, entry.output.slice(0, 80) + (entry.output.length > 80 ? "..." : ""))
                       )
                     )
               )
