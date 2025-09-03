@@ -6,8 +6,8 @@
   <title>WebADB Pro GUI</title>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/webadb@0.3.1/dist/webadb.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/webadb@0.3.0/dist/webadb.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
   <style>
     :root {
       --primary: #6366f1;
@@ -196,12 +196,20 @@
   <script>
     // Fallback if Adb is not defined
     if (typeof Adb === 'undefined') {
-      console.error('WebADB.js failed to load. Please check the CDN or network.');
+      console.error('WebADB.js failed to load from CDN: https://cdn.jsdelivr.net/npm/webadb@0.3.0/dist/webadb.js');
       document.getElementById('root').innerHTML = `
         <div class="min-h-screen flex items-center justify-center p-4">
-          <div class="text-red-600 text-center">
-            <h1 class="text-2xl font-bold">Error Loading WebADB.js</h1>
-            <p>Please ensure you have an internet connection and try refreshing the page.</p>
+          <div class="text-red-600 text-center max-w-md">
+            <h1 class="text-2xl font-bold mb-4">Error Loading WebADB.js</h1>
+            <p class="mb-4">Failed to load WebADB.js. Please try the following:</p>
+            <ul class="text-left list-disc list-inside mb-4">
+              <li>Ensure you have a stable internet connection.</li>
+              <li>Refresh the page to retry loading the script.</li>
+              <li>Use a WebUSB-supported browser like Chrome or Edge.</li>
+              <li>Check the browser console (F12 > Console) for details.</li>
+              <li>Use a local copy of webadb.js if available in your project.</li>
+            </ul>
+            <p>If the issue persists, try an alternative CDN or contact support.</p>
           </div>
         </div>
       `;
