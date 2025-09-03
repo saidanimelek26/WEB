@@ -6,7 +6,8 @@
   <title>WebADB Pro GUI</title>
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@webadb/webadb.js@0.0.7/dist/index.umd.js"></script>
+  <!-- Using local webadb.js file instead of CDN -->
+  <script src="webadb.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root {
@@ -265,8 +266,13 @@
         setLoading(true);
         setError("");
         try {
-          // Use WebADB.js correctly
-          const adbInstance = new webadb.WebADB();
+          // Use the local WebADB.js file
+          // Check if WebADB is available in the global scope
+          if (typeof WebADB === 'undefined') {
+            throw new Error("WebADB library not loaded. Make sure webadb.js is in the same directory.");
+          }
+          
+          const adbInstance = new WebADB();
           const device = await adbInstance.connect();
           
           setAdb(adbInstance);
