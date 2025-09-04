@@ -8,6 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/webadb/webadb.js@master/webadb.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --primary: #6366f1;
@@ -25,7 +26,8 @@
 
     body {
       transition: all 0.3s ease;
-      font-family: 'Cairo', 'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      font-family: 'Cairo', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     }
 
     @keyframes fadeIn {
@@ -189,9 +191,18 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+
+    /* منع إعادة التوجيه التلقائي */
+    form {
+      display: flex;
+    }
+    
+    .command-input {
+      flex: 1;
+    }
   </style>
 </head>
-<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-indigo-900 dark:to-purple-900 transition-colors duration-300 min-h-screen">
+<body class="min-h-screen flex items-center justify-center p-4">
   <div id="root"></div>
 
   <script>
@@ -204,7 +215,7 @@
       const [loading, setLoading] = useState(false);
       const [error, setError] = useState("");
       const [commandHistory, setCommandHistory] = useState([]);
-      const [darkMode, setDarkMode] = useState(true);
+      const [darkMode, setDarkMode] = useState(false); // الوضع الفاتح افتراضيًا
       const [activeTab, setActiveTab] = useState("info");
       const [shellCommand, setShellCommand] = useState("");
       const windowRef = useRef(null);
@@ -222,44 +233,6 @@
         document.body.classList.toggle("dark", darkMode);
         localStorage.setItem("theme", darkMode ? "dark" : "light");
       }, [darkMode]);
-
-      // تفعيل خاصية السحب للنافذة
-      useEffect(() => {
-        const window = windowRef.current;
-        if (!window) return;
-        
-        let offsetX, offsetY, isDragging = false;
-        
-        const handleDragStart = (e) => {
-          if (e.target.classList.contains("draggable-header")) {
-            isDragging = true;
-            offsetX = e.clientX - window.offsetLeft;
-            offsetY = e.clientY - window.offsetTop;
-            window.style.cursor = "grabbing";
-          }
-        };
-        
-        const handleDrag = (e) => {
-          if (!isDragging) return;
-          window.style.left = `${e.clientX - offsetX}px`;
-          window.style.top = `${e.clientY - offsetY}px`;
-        };
-        
-        const handleDragEnd = () => {
-          isDragging = false;
-          window.style.cursor = "default";
-        };
-        
-        window.addEventListener("mousedown", handleDragStart);
-        document.addEventListener("mousemove", handleDrag);
-        document.addEventListener("mouseup", handleDragEnd);
-        
-        return () => {
-          window.removeEventListener("mousedown", handleDragStart);
-          document.removeEventListener("mousemove", handleDrag);
-          document.removeEventListener("mouseup", handleDragEnd);
-        };
-      }, []);
 
       const connectDevice = async () => {
         setLoading(true);
@@ -311,6 +284,7 @@
           setError("لا يوجد جهاز متصل. يرجى الاتصال بجهاز أولاً.");
           return;
         }
+        setLoading(true);
         try {
           const shell = await adb.shell(command);
           const result = await shell.receive();
@@ -320,19 +294,30 @@
             ...prev.slice(-9),
             { command, output: outputText, timestamp: new Date().toLocaleTimeString() },
           ]);
+          setError("");
         } catch (err) {
           setError(`فشل في تنفيذ الأمر: ${err.message}`);
           setOutput(`خطأ: ${err.message}`);
+        } finally {
+          setLoading(false);
         }
       };
 
       const handleShellSubmit = (e) => {
-        e.preventDefault();
+        e.preventDefault(); // هذا السطر يمنع إعادة تحميل الصفحة
         if (shellCommand.trim()) {
           runShellCommand(shellCommand.trim());
           setShellCommand("");
         }
       };
+
+      // أوامر ADB شائعة الاستخدام
+      const commonCommands = [
+        { command: "getprop", description: "عرض خصائص النظام" },
+        { command: "pm list packages", description: "عرض التطبيقات المثبتة" },
+        { command: "dumpsys battery", description: "عرض حالة البطارية" },
+        { command: "settings list system", description: "عرض إعدادات النظام" }
+      ];
 
       return React.createElement(
         "div",
@@ -425,14 +410,6 @@
                   className: `px-4 py-2 font-medium ${activeTab === "shell" ? "tab-active" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"}`,
                 },
                 "سطر الأوامر"
-              ),
-              React.createElement(
-                "button",
-                {
-                  onClick: () => setActiveTab("files"),
-                  className: `px-4 py-2 font-medium ${activeTab === "files" ? "tab-active" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"}`,
-                },
-                "مدير الملفات"
               )
             ),
             
@@ -468,12 +445,12 @@
             ),
             
             activeTab === "shell" && React.createElement(
-              "div",
-              { className: "flex-1 mb-6" },
-              React.createElement("h2", { className: "text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3" }, "سطر أوامر ADB"),
+              React.Fragment,
+              null,
               React.createElement(
                 "form",
-                { onSubmit: handleShellSubmit, className: "glass-effect rounded-lg p-4 mb-4" },
+                { onSubmit: handleShellSubmit, className: "mb-6" },
+                React.createElement("h2", { className: "text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3" }, "أمر مخصص"),
                 React.createElement("div", { className: "flex" },
                   React.createElement("input", {
                     type: "text",
@@ -481,7 +458,7 @@
                     onChange: (e) => setShellCommand(e.target.value),
                     placeholder: "أدخل أمر ADB (مثل: pm list packages)",
                     disabled: !adb,
-                    className: "flex-1 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-l-lg text-gray-900 dark:text-gray-100 disabled:opacity-50"
+                    className: "command-input px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-l-lg text-gray-900 dark:text-gray-100 disabled:opacity-50"
                   }),
                   React.createElement(
                     "button",
@@ -494,61 +471,35 @@
                   )
                 )
               ),
-              React.createElement("div", { className: "mt-4" },
-                React.createElement("p", { className: "text-sm text-gray-600 dark:text-gray-400 mb-2" }, "أوامر شائعة:"),
-                React.createElement("div", { className: "flex flex-wrap gap-2" },
-                  React.createElement(
-                    "button",
-                    {
-                      type: "button",
-                      onClick: () => runShellCommand("ls -l /system"),
-                      disabled: !adb,
-                      className: "px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 rounded disabled:opacity-50"
-                    },
-                    "ls -l /system"
-                  ),
-                  React.createElement(
-                    "button",
-                    {
-                      type: "button",
-                      onClick: () => runShellCommand("ps"),
-                      disabled: !adb,
-                      className: "px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 rounded disabled:opacity-50"
-                    },
-                    "ps"
-                  ),
-                  React.createElement(
-                    "button",
-                    {
-                      type: "button",
-                      onClick: () => runShellCommand("dumpsys battery"),
-                      disabled: !adb,
-                      className: "px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 rounded disabled:opacity-50"
-                    },
-                    "dumpsys battery"
-                  ),
-                  React.createElement(
-                    "button",
-                    {
-                      type: "button",
-                      onClick: () => runShellCommand("getprop ro.product.model"),
-                      disabled: !adb,
-                      className: "px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 rounded disabled:opacity-50"
-                    },
-                    "getprop model"
-                  )
-                )
-              )
-            ),
-            
-            activeTab === "files" && React.createElement(
-              "div",
-              { className: "flex-1 mb-6" },
-              React.createElement("h2", { className: "text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3" }, "مدير الملفات"),
               React.createElement(
                 "div",
-                { className: "glass-effect rounded-lg p-4 h-48 flex items-center justify-center" },
-                React.createElement("p", { className: "text-gray-700 dark:text-gray-300" }, "هذه الميزة قيد التطوير...")
+                { className: "mb-6" },
+                React.createElement("h2", { className: "text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3" }, "أوامر سريعة"),
+                React.createElement("div", { className: "grid grid-cols-2 gap-2" },
+                  commonCommands.map((cmd, index) => 
+                    React.createElement(
+                      "button",
+                      {
+                        key: index,
+                        onClick: () => runShellCommand(cmd.command),
+                        disabled: !adb,
+                        className: "p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-right hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 transition-all duration-200",
+                      },
+                      React.createElement("div", { className: "font-medium text-gray-900 dark:text-gray-100" }, cmd.command),
+                      React.createElement("div", { className: "text-sm text-gray-600 dark:text-gray-400" }, cmd.description)
+                    )
+                  )
+                )
+              ),
+              React.createElement(
+                "div",
+                { className: "flex-1 mb-6" },
+                React.createElement("h2", { className: "text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3" }, "المخرجات"),
+                React.createElement(
+                  "pre",
+                  { className: "output-terminal scrollbar-custom" },
+                  output || "سيظهر ناتج الأمر هنا بعد التنفيذ."
+                )
               )
             ),
             
