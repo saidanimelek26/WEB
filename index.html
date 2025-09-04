@@ -1,548 +1,406 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WebADB Pro GUI</title>
-  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/webadb/webadb.js@master/webadb.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --primary: #6366f1;
-      --primary-dark: #4f46e5;
-      --secondary: #10b981;
-      --dark-bg: #1f2937;
-      --darker-bg: #111827;
-      --light-bg: #f9fafb;
-      --lighter-bg: #ffffff;
-      --text-dark: #1f2937;
-      --text-light: #f9fafb;
-      --border-dark: #374151;
-      --border-light: #e5e7eb;
-    }
-
-    body {
-      transition: all 0.3s ease;
-      font-family: 'Cairo', sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(15px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.03); }
-    }
-    
-    .animate-fadeIn {
-      animation: fadeIn 0.5s ease-out;
-    }
-    
-    .animate-pulse {
-      animation: pulse 2s infinite;
-    }
-    
-    .window {
-      resize: both;
-      overflow: auto;
-      min-width: 500px;
-      min-height: 600px;
-      max-width: 90vw;
-      max-height: 85vh;
-      background: var(--lighter-bg);
-      border: 1px solid var(--border-light);
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-      border-radius: 12px;
-    }
-    
-    .dark .window {
-      background: var(--darker-bg);
-      border: 1px solid var(--border-dark);
-    }
-    
-    .draggable-header {
-      cursor: move;
-      user-select: none;
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-      border-top-left-radius: 12px;
-      border-top-right-radius: 12px;
-    }
-    
-    .scrollbar-custom::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
-    
-    .scrollbar-custom::-webkit-scrollbar-track {
-      background: rgba(229, 231, 235, 0.4);
-      border-radius: 4px;
-    }
-    
-    .scrollbar-custom::-webkit-scrollbar-thumb {
-      background: rgba(107, 114, 128, 0.6);
-      border-radius: 4px;
-    }
-    
-    .scrollbar-custom::-webkit-scrollbar-thumb:hover {
-      background: rgba(75, 85, 99, 0.8);
-    }
-    
-    .dark .scrollbar-custom::-webkit-scrollbar-track {
-      background: rgba(31, 41, 55, 0.4);
-    }
-    
-    .dark .scrollbar-custom::-webkit-scrollbar-thumb {
-      background: rgba(156, 163, 175, 0.6);
-    }
-    
-    .dark .scrollbar-custom::-webkit-scrollbar-thumb:hover {
-      background: rgba(209, 213, 219, 0.8);
-    }
-    
-    .glass-effect {
-      background: rgba(255, 255, 255, 0.7);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(8px);
-    }
-    
-    .dark .glass-effect {
-      background: rgba(31, 41, 55, 0.4);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .btn-primary {
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-      color: white;
-      transition: all 0.2s ease;
-    }
-    
-    .btn-primary:hover:not(:disabled) {
-      background: linear-gradient(135deg, var(--primary-dark), #4338ca);
-      transform: translateY(-2px);
-      box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.4);
-    }
-    
-    .btn-success {
-      background: linear-gradient(135deg, var(--secondary), #059669);
-      color: white;
-      transition: all 0.2s ease;
-    }
-    
-    .btn-success:hover:not(:disabled) {
-      background: linear-gradient(135deg, #059669, #047857);
-      transform: translateY(-2px);
-      box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.4);
-    }
-    
-    .status-connected {
-      color: var(--secondary);
-      font-weight: 600;
-    }
-    
-    .status-disconnected {
-      color: #ef4444;
-      font-weight: 600;
-    }
-    
-    .output-terminal {
-      background: var(--dark-bg);
-      color: var(--text-light);
-      font-family: 'Cascadia Code', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-      border-radius: 8px;
-      padding: 1rem;
-      height: 220px;
-      overflow: auto;
-    }
-    
-    .history-panel {
-      max-height: 120px;
-      overflow-y: auto;
-    }
-    
-    .tab-active {
-      border-bottom: 2px solid var(--primary);
-      color: var(--primary);
-      font-weight: 600;
-    }
-    
-    .dark .tab-active {
-      color: var(--primary-dark);
-      border-bottom: 2px solid var(--primary-dark);
-    }
-
-    .loading-spinner {
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid var(--primary);
-      border-radius: 50%;
-      width: 20px;
-      height: 20px;
-      animation: spin 1s linear infinite;
-      display: inline-block;
-      margin-right: 8px;
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    /* منع إعادة التوجيه التلقائي */
-    form {
-      display: flex;
-    }
-    
-    .command-input {
-      flex: 1;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إصلاح مشكلة اتصال WebADB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(120deg, #f0f9ff, #e0f2fe);
+            color: #1e293b;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(120deg, #2563eb, #3b82f6);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .error-box {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .error-icon {
+            color: #ef4444;
+            font-size: 2rem;
+            margin-left: 15px;
+        }
+        
+        .error-text {
+            flex: 1;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+        }
+        
+        h2 {
+            font-size: 1.8rem;
+            color: #2563eb;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #dbeafe;
+            display: flex;
+            align-items: center;
+        }
+        
+        h2 i {
+            margin-left: 10px;
+        }
+        
+        .steps {
+            display: grid;
+            gap: 20px;
+        }
+        
+        .step {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease;
+        }
+        
+        .step:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .step-number {
+            display: inline-block;
+            width: 35px;
+            height: 35px;
+            background: #3b82f6;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 35px;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+        
+        .step-title {
+            font-size: 1.4rem;
+            color: #1e40af;
+            margin-bottom: 10px;
+        }
+        
+        .browser-support {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .browser {
+            text-align: center;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 12px;
+        }
+        
+        .browser i {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+        
+        .browser.chrome i {
+            color: #db4437;
+        }
+        
+        .browser.edge i {
+            color: #0078d7;
+        }
+        
+        .browser.firefox i {
+            color: #ff7139;
+        }
+        
+        .solution-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border-top: 4px solid #3b82f6;
+        }
+        
+        .card h3 {
+            font-size: 1.4rem;
+            color: #1e40af;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .card h3 i {
+            margin-left: 10px;
+        }
+        
+        .card ul {
+            padding-right: 20px;
+        }
+        
+        .card li {
+            margin-bottom: 10px;
+            position: relative;
+        }
+        
+        .card li:before {
+            content: "•";
+            color: #3b82f6;
+            font-weight: bold;
+            display: inline-block;
+            width: 1em;
+            margin-left: 10px;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 30px;
+            background: #f1f5f9;
+            color: #64748b;
+            margin-top: 30px;
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .browser-support {
+                grid-template-columns: 1fr;
+            }
+            
+            .solution-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .important-note {
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 30px 0;
+        }
+        
+        .important-note h3 {
+            color: #d97706;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .important-note h3 i {
+            margin-left: 10px;
+        }
+    </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
-  <div id="root"></div>
-
-  <script>
-    const { useState, useEffect, useRef } = React;
-
-    function App() {
-      const [deviceStatus, setDeviceStatus] = useState("غير متصل");
-      const [output, setOutput] = useState("");
-      const [adb, setAdb] = useState(null);
-      const [loading, setLoading] = useState(false);
-      const [error, setError] = useState("");
-      const [commandHistory, setCommandHistory] = useState([]);
-      const [darkMode, setDarkMode] = useState(false); // الوضع الفاتح افتراضيًا
-      const [activeTab, setActiveTab] = useState("info");
-      const [shellCommand, setShellCommand] = useState("");
-      const windowRef = useRef(null);
-
-      // تحميل وضع الألوان من التخزين المحلي إذا كان موجوداً
-      useEffect(() => {
-        const savedTheme = localStorage.getItem("theme");
-        if (savedTheme) {
-          setDarkMode(savedTheme === "dark");
-        }
-      }, []);
-
-      // تطبيق وضع الألوان
-      useEffect(() => {
-        document.body.classList.toggle("dark", darkMode);
-        localStorage.setItem("theme", darkMode ? "dark" : "light");
-      }, [darkMode]);
-
-      const connectDevice = async () => {
-        setLoading(true);
-        setError("");
-        try {
-          // استخدام WebADB.js بشكل صحيح
-          const webusb = await Adb.open("WebUSB");
-          const adbConnection = await webusb.connectAdb("host::");
-          
-          setAdb(adbConnection);
-          setDeviceStatus("متصل");
-          setOutput("تم الاتصال بالجهاز بنجاح. انقر على 'قراءة المعلومات' لعرض تفاصيل الجهاز.");
-        } catch (err) {
-          setError(`فشل الاتصال: ${err.message}. تأكد من تمكين تصحيح USB وأن الجهاز متصل عبر USB.`);
-          setDeviceStatus("غير متصل");
-          setOutput("");
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      const runReadInfo = async () => {
-        if (!adb) {
-          setError("لا يوجد جهاز متصل. يرجى الاتصال بجهاز أولاً.");
-          return;
-        }
-        setLoading(true);
-        setError("");
-        try {
-          // استخدام WebADB.js لتنفيذ الأمر
-          const shell = await adb.shell("getprop");
-          const result = await shell.receive();
-          const outputText = result.data || "لم يتم استقبال أي معلومات من الجهاز.";
-          setOutput(outputText);
-          setCommandHistory((prev) => [
-            ...prev.slice(-9),
-            { command: "getprop", output: outputText, timestamp: new Date().toLocaleTimeString() },
-          ]);
-        } catch (err) {
-          setError(`فشل في قراءة معلومات الجهاز: ${err.message}`);
-          setOutput(`خطأ: ${err.message}`);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      const runShellCommand = async (command) => {
-        if (!adb) {
-          setError("لا يوجد جهاز متصل. يرجى الاتصال بجهاز أولاً.");
-          return;
-        }
-        setLoading(true);
-        try {
-          const shell = await adb.shell(command);
-          const result = await shell.receive();
-          const outputText = result.data || "تم تنفيذ الأمر بنجاح.";
-          setOutput(outputText);
-          setCommandHistory((prev) => [
-            ...prev.slice(-9),
-            { command, output: outputText, timestamp: new Date().toLocaleTimeString() },
-          ]);
-          setError("");
-        } catch (err) {
-          setError(`فشل في تنفيذ الأمر: ${err.message}`);
-          setOutput(`خطأ: ${err.message}`);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      const handleShellSubmit = (e) => {
-        e.preventDefault(); // هذا السطر يمنع إعادة تحميل الصفحة
-        if (shellCommand.trim()) {
-          runShellCommand(shellCommand.trim());
-          setShellCommand("");
-        }
-      };
-
-      // أوامر ADB شائعة الاستخدام
-      const commonCommands = [
-        { command: "getprop", description: "عرض خصائص النظام" },
-        { command: "pm list packages", description: "عرض التطبيقات المثبتة" },
-        { command: "dumpsys battery", description: "عرض حالة البطارية" },
-        { command: "settings list system", description: "عرض إعدادات النظام" }
-      ];
-
-      return React.createElement(
-        "div",
-        { className: "min-h-screen flex items-center justify-center p-6" },
-        React.createElement(
-          "div",
-          {
-            ref: windowRef,
-            className: "window rounded-xl w-[800px] h-[700px] relative animate-fadeIn",
-            style: { position: "absolute", top: "5%", left: "50%", transform: "translateX(-50%)" },
-          },
-          React.createElement(
-            "div",
-            { className: "draggable-header p-4 flex justify-between items-center" },
-            React.createElement("div", { className: "flex items-center space-x-2" },
-              React.createElement("div", { className: "w-6 h-6 rounded-full bg-white/20 flex items-center justify-center" }, "🔧"),
-              React.createElement("span", { className: "font-bold text-lg text-white" }, "WebADB Pro")
-            ),
-            React.createElement(
-              "div",
-              { className: "flex items-center space-x-3" },
-              React.createElement(
-                "button",
-                {
-                  onClick: () => setDarkMode(!darkMode),
-                  className: "p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-300 text-white",
-                  title: darkMode ? "التغيير إلى الوضع الفاتح" : "التغيير إلى الوضع الداكن",
-                },
-                darkMode ? "☀️" : "🌙"
-              )
-            )
-          ),
-          React.createElement(
-            "div",
-            { className: "p-6 flex flex-col h-full" },
-            React.createElement(
-              "div",
-              { className: "flex justify-between items-center mb-6" },
-              React.createElement(
-                "button",
-                {
-                  onClick: connectDevice,
-                  disabled: loading || deviceStatus === "متصل",
-                  className: `px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                    deviceStatus === "متصل" 
-                      ? "btn-success" 
-                      : "btn-primary"
-                  } disabled:opacity-50 disabled:cursor-not-allowed ${loading || deviceStatus !== "متصل" ? "animate-pulse" : ""}`,
-                },
-                loading ? React.createElement(React.Fragment, null, 
-                  React.createElement("div", { className: "loading-spinner" }),
-                  "جاري الاتصال..."
-                ) : deviceStatus === "متصل" ? "متصل" : "الاتصال بالجهاز"
-              ),
-              React.createElement(
-                "div",
-                { className: "flex items-center" },
-                React.createElement("div", { 
-                  className: `w-3 h-3 rounded-full mr-2 ${deviceStatus === "متصل" ? "bg-green-500" : "bg-red-500"}`
-                }),
-                React.createElement(
-                  "span",
-                  { className: `text-lg font-medium ${deviceStatus === "متصل" ? "status-connected" : "status-disconnected"}` },
-                  `الحالة: ${deviceStatus}`
-                )
-              )
-            ),
+<body>
+    <div class="container">
+        <header>
+            <h1>إصلاح مشكلة اتصال WebADB</h1>
+            <p class="subtitle">دليل استكشاف الأخطاء وإصلاحها لـ "Failed to execute 'claimInterface' on 'USBDevice'"</p>
+        </header>
+        
+        <div class="content">
+            <div class="error-box">
+                <i class="fas fa-bug error-icon"></i>
+                <div class="error-text">
+                    <h2>خطأ: Unable to claim interface</h2>
+                    <p>هذا الخطأ يعني أن تطبيقاً آخر على جهازك يستخدم اتصال USB بجهاز Android الخاص بك، مما يمنع WebADB من الوصول إليه.</p>
+                </div>
+            </div>
             
-            error && React.createElement(
-              "div", 
-              { className: "mb-6 p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg animate-fadeIn" },
-              React.createElement("p", { className: "text-red-700 dark:text-red-300" }, error)
-            ),
+            <div class="section">
+                <h2><i class="fas fa-tools"></i> خطوات الإصلاح</h2>
+                <div class="steps">
+                    <div class="step">
+                        <h3 class="step-title"><span class="step-number">1</span> أغلق التطبيقات الأخرى</h3>
+                        <p>أغلق أي تطبيقات قد تستخدم اتصال ADB مثل:</p>
+                        <ul>
+                            <li>Android Studio</li>
+                            <li>Visual Studio Code مع إضافة ADB</li>
+                            <li>أي أدوات أخرى لإدارة الأجهزة</li>
+                            <li>منافذ USB الافتراضية في VirtualBox أو VMware</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="step">
+                        <h3 class="step-title"><span class="step-number">2</span> تأكد من إعدادات المطور</h3>
+                        <p>على جهاز Android الخاص بك:</p>
+                        <ul>
+                            <li>انتقل إلى الإعدادات → حول الهاتف</li>
+                            <li>انقر 7 مرات على "رقم البناء" لتمكين خيارات المطور</li>
+                            <li>ارجع إلى الإعدادات → خيارات المطور</li>
+                            <li>شغّل "تصحيح USB"</li>
+                            <li>شغّل "تصحيح USB عبر الشبكة" (إن وجد)</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="step">
+                        <h3 class="step-title"><span class="step-number">3</span> تحقق من اتصال USB</h3>
+                        <p>تأكد من أن اتصال USB يعمل بشكل صحيح:</p>
+                        <ul>
+                            <li>جرب كابل USB مختلف</li>
+                            <li>جرب منفذ USB مختلف على جهازك</li>
+                            <li>تأكد من توصيل الجهاز مباشرة وليس عبر USB hub</li>
+                            <li>افصل وأعد توصيل الكابل</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="step">
+                        <h3 class="step-title"><span class="step-number">4</span> السماح للاتصال</h3>
+                        <p>عند توصيل الجهاز:</p>
+                        <ul>
+                            <li>ابحث عن نافذة على جهاز Android تطلب السماح للاتصال</li>
+                            <li>اختر "السماح دائمًا من هذا الكمبيوتر"</li>
+                            <li>انقر على "موافق" أو "سماح"</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
             
-            React.createElement(
-              "div",
-              { className: "mb-6 flex border-b border-gray-200 dark:border-gray-700" },
-              React.createElement(
-                "button",
-                {
-                  onClick: () => setActiveTab("info"),
-                  className: `px-4 py-2 font-medium ${activeTab === "info" ? "tab-active" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"}`,
-                },
-                "معلومات الجهاز"
-              ),
-              React.createElement(
-                "button",
-                {
-                  onClick: () => setActiveTab("shell"),
-                  className: `px-4 py-2 font-medium ${activeTab === "shell" ? "tab-active" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"}`,
-                },
-                "سطر الأوامر"
-              )
-            ),
+            <div class="important-note">
+                <h3><i class="fas fa-exclamation-circle"></i> ملاحظة مهمة</h3>
+                <p>WebADB يعمل فقط على متصفحات محددة تدعم WebUSB مثل Chrome و Edge. كما يتطلب اتصال HTTPS آمن ليعمل بشكل صحيح.</p>
+            </div>
             
-            activeTab === "info" && React.createElement(
-              React.Fragment,
-              null,
-              React.createElement(
-                "div",
-                { className: "mb-6" },
-                React.createElement(
-                  "button",
-                  {
-                    onClick: runReadInfo,
-                    disabled: loading || !adb,
-                    className: "w-full px-6 py-4 glass-effect rounded-lg text-lg font-semibold text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed",
-                  },
-                  loading ? React.createElement(React.Fragment, null, 
-                    React.createElement("div", { className: "loading-spinner" }),
-                    "جاري القراءة..."
-                  ) : "قراءة معلومات الجهاز"
-                )
-              ),
-              React.createElement(
-                "div",
-                { className: "flex-1 mb-6" },
-                React.createElement("h2", { className: "text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3" }, "المخرجات"),
-                React.createElement(
-                  "pre",
-                  { className: "output-terminal scrollbar-custom" },
-                  output || "اتصل بجهاز وانقر على 'قراءة معلومات الجهاز' لعرض التفاصيل."
-                )
-              )
-            ),
+            <div class="section">
+                <h2><i class="fas fa-desktop"></i> متطلبات المتصفح</h2>
+                <p>لضمان عمل WebADB بشكل صحيح، استخدم أحد المتصفحات التالية:</p>
+                
+                <div class="browser-support">
+                    <div class="browser chrome">
+                        <i class="fab fa-chrome"></i>
+                        <h3>Google Chrome</h3>
+                        <p>الإصدار 61 أو أحدث</p>
+                        <p class="status">مدعوم بشكل كامل</p>
+                    </div>
+                    
+                    <div class="browser edge">
+                        <i class="fab fa-edge"></i>
+                        <h3>Microsoft Edge</h3>
+                        <p>الإصدار 79 أو أحدث</p>
+                        <p class="status">مدعوم بشكل كامل</p>
+                    </div>
+                    
+                    <div class="browser firefox">
+                        <i class="fab fa-firefox"></i>
+                        <h3>Mozilla Firefox</h3>
+                        <p>الإصدار 80 أو أحدث</p>
+                        <p class="status">مدعوم جزئياً</p>
+                    </div>
+                </div>
+            </div>
             
-            activeTab === "shell" && React.createElement(
-              React.Fragment,
-              null,
-              React.createElement(
-                "form",
-                { onSubmit: handleShellSubmit, className: "mb-6" },
-                React.createElement("h2", { className: "text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3" }, "أمر مخصص"),
-                React.createElement("div", { className: "flex" },
-                  React.createElement("input", {
-                    type: "text",
-                    value: shellCommand,
-                    onChange: (e) => setShellCommand(e.target.value),
-                    placeholder: "أدخل أمر ADB (مثل: pm list packages)",
-                    disabled: !adb,
-                    className: "command-input px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-l-lg text-gray-900 dark:text-gray-100 disabled:opacity-50"
-                  }),
-                  React.createElement(
-                    "button",
-                    {
-                      type: "submit",
-                      disabled: !adb || !shellCommand.trim(),
-                      className: "px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded-r-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                    },
-                    "تنفيذ"
-                  )
-                )
-              ),
-              React.createElement(
-                "div",
-                { className: "mb-6" },
-                React.createElement("h2", { className: "text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3" }, "أوامر سريعة"),
-                React.createElement("div", { className: "grid grid-cols-2 gap-2" },
-                  commonCommands.map((cmd, index) => 
-                    React.createElement(
-                      "button",
-                      {
-                        key: index,
-                        onClick: () => runShellCommand(cmd.command),
-                        disabled: !adb,
-                        className: "p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-right hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 transition-all duration-200",
-                      },
-                      React.createElement("div", { className: "font-medium text-gray-900 dark:text-gray-100" }, cmd.command),
-                      React.createElement("div", { className: "text-sm text-gray-600 dark:text-gray-400" }, cmd.description)
-                    )
-                  )
-                )
-              ),
-              React.createElement(
-                "div",
-                { className: "flex-1 mb-6" },
-                React.createElement("h2", { className: "text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3" }, "المخرجات"),
-                React.createElement(
-                  "pre",
-                  { className: "output-terminal scrollbar-custom" },
-                  output || "سيظهر ناتج الأمر هنا بعد التنفيذ."
-                )
-              )
-            ),
-            
-            React.createElement(
-              "div",
-              { className: "mt-auto" },
-              React.createElement("h2", { className: "text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3" }, "السجل"),
-              React.createElement(
-                "div",
-                { className: "glass-effect rounded-lg p-4 history-panel scrollbar-custom" },
-                commandHistory.length === 0
-                  ? React.createElement("p", { className: "text-gray-500 dark:text-gray-400" }, "لا توجد أوامر منفذة بعد.")
-                  : commandHistory.map((entry, index) =>
-                      React.createElement(
-                        "div",
-                        { key: index, className: "mb-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700" },
-                        React.createElement(
-                          "div",
-                          { className: "flex justify-between items-center mb-1" },
-                          React.createElement(
-                            "span",
-                            { className: "text-sm font-semibold text-gray-900 dark:text-gray-100" },
-                            entry.command
-                          ),
-                          React.createElement(
-                            "span",
-                            { className: "text-xs text-gray-500 dark:text-gray-400" },
-                            entry.timestamp
-                          )
-                        ),
-                        React.createElement("pre", { className: "text-xs text-gray-600 dark:text-gray-300 truncate" }, 
-                          entry.output.slice(0, 80) + (entry.output.length > 80 ? "..." : ""))
-                      )
-                    )
-              )
-            )
-          )
-        )
-      );
-    }
+            <div class="section">
+                <h2><i class="fas fa-lightbulb"></i> حلول بديلة</h2>
+                <div class="solution-cards">
+                    <div class="card">
+                        <h3><i class="fas fa-sync-alt"></i> إعادة التشغيل</h3>
+                        <ul>
+                            <li>أعد تشغيل جهاز الكمبيوتر</li>
+                            <li>أعد تشغيل جهاز Android</li>
+                            <li>جرب متصفحاً مختلفاً</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="card">
+                        <h3><i class="fas fa-plug"></i> إعدادات USB</h3>
+                        <ul>
+                            <li>غير وضع نقل USB إلى MTP أو PTP</li>
+                            <li>تعطيل خيار "USB للشحن فقط"</li>
+                            <li>جرب وضع "نقل الملفات" بدلاً من "شحن فقط"</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="card">
+                        <h3><i class="fas fa-wifi"></i> ADB عبر Wi-Fi</h3>
+                        <ul>
+                            <li>اتصل بجهاز Android عبر Wi-Fi بدلاً من USB</li>
+                            <li>استخدم الأمر: adb connect IP_Address:Port</li>
+                            <li>تأكد من أن الجهاز والكمبيوتر على نفس الشبكة</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>© 2023 دليل استكشاف أخطاء WebADB وإصلاحها</p>
+            <p>يجب أن تكون الصفحة مشغلة على HTTPS لتعمل WebUSB بشكل صحيح</p>
+        </div>
+    </div>
 
-    // تهيئة وتصيير التطبيق
-    ReactDOM.render(React.createElement(App), document.getElementById("root"));
-  </script>
+    <script>
+        // إضافة تأثيرات بسيطة للصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            const steps = document.querySelectorAll('.step');
+            steps.forEach((step, index) => {
+                step.style.animationDelay = `${index * 0.2}s`;
+                step.style.animation = 'fadeIn 1s forwards';
+            });
+            
+            // إضافة نمط للتحريك
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+            `;
+            document.head.appendChild(style);
+        });
+    </script>
 </body>
 </html>
